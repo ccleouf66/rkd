@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -24,7 +25,7 @@ func main() {
 	}
 
 	// Download rancher-image.txt
-	path, err := GetRancherImageList(latestRelease)
+	path, err := GetRancherImageList(latestRelease, "tmp")
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		return
@@ -75,7 +76,7 @@ func GetRepoStablRelease(user string, repo string) ([]*github.RepositoryRelease,
 }
 
 // GetRancherImageList download rancher-images.txt file from rancher release
-func GetRancherImageList(release *github.RepositoryRelease) (path string, err error) {
+func GetRancherImageList(release *github.RepositoryRelease, dest string) (path string, err error) {
 	client := github.NewClient(nil)
 
 	releaseAssets, _, err := client.Repositories.ListReleaseAssets(context.Background(), "rancher", "rancher", release.GetID(), nil)
@@ -87,7 +88,15 @@ func GetRancherImageList(release *github.RepositoryRelease) (path string, err er
 		if asset.GetName() == "rancher-images.txt" {
 
 			// Create destination file
-			out, err := os.Create(asset.GetName())
+			_, err := os.Stat(dest)
+			if os.IsNotExist(err) {
+				errCreateDir := os.MkdirAll(dest, 0755)
+				if errCreateDir != nil {
+					log.Fatal(err)
+				}
+			}
+			pathFile := fmt.Sprintf("%s/%s", dest, asset.GetName())
+			out, err := os.Create(pathFile)
 			if err != nil {
 				return "", err
 			}
@@ -109,14 +118,14 @@ func GetRancherImageList(release *github.RepositoryRelease) (path string, err er
 				if err != nil {
 					return "", err
 				}
-				return asset.GetName(), nil
+				return pathFile, nil
 			}
 
 			_, err = io.Copy(out, rc)
 			if err != nil {
 				return "", err
 			}
-			return asset.GetName(), nil
+			return pathFile, nil
 		}
 	}
 
