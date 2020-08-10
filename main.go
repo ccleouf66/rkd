@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -132,7 +133,7 @@ func GetRancherImageList(release *github.RepositoryRelease, dest string) (path s
 	return "", nil
 }
 
-// PullImages get an image list and pull images to tar.gz file
+// PullImages Pull images listed in `imgListPath` in local registry
 func PullImages(imgListPath string) (archivePath string, err error) {
 	dockerCli, err := docker.NewEnvClient()
 	if err != nil {
@@ -161,8 +162,9 @@ func PullImages(imgListPath string) (archivePath string, err error) {
 	return "", nil
 }
 
-// SaveImageFromFile save image from local registry listed in imgListPath to tarball
-func SaveImageFromFile(imgListPath string) (tarPath string, err error) {
+// SaveImageFromFile save image from local registry listed in `imgListPath` to tarball
+func SaveImageFromFile(imgListPath string, dest string) (tarPath string, err error) {
+
 	dockerCli, err := docker.NewEnvClient()
 	if err != nil {
 		return "", err
@@ -181,23 +183,38 @@ func SaveImageFromFile(imgListPath string) (tarPath string, err error) {
 		imgs = append(imgs, scanner.Text())
 	}
 
-	tarfile, err := os.Create("rancher-images.tar.gz")
+	// Create destination dir and file
+	destInfo, err := os.Stat(dest)
+	if os.IsNotExist(err) {
+		errCreateDir := os.MkdirAll(dest, 0755)
+		if errCreateDir != nil {
+			log.Fatal(err)
+		}
+	}
+	if !destInfo.IsDir() {
+		return "", errors.New("Destination is file but should be a folder")
+	}
+	pathFile := fmt.Sprintf("%s/rancher-images.tar.gz", dest)
+	tarfile, err := os.Create(pathFile)
 	if err != nil {
 		return "", err
 	}
 	defer tarfile.Close()
 
+	// gzip writer
 	gw := gzip.NewWriter(tarfile)
 	defer gw.Close()
 
+	// Save images
 	rc, err := dockerCli.ImageSave(context.Background(), imgs)
 	if err != nil {
 		return "", err
 	}
 
+	// Write it in dest file
 	if _, err := io.Copy(gw, rc); err != nil {
 		return "", err
 	}
 
-	return "rancher-images.tar.gz", nil
+	return pathFile, nil
 }
