@@ -23,30 +23,55 @@ func main() {
 		fmt.Printf("%s", err)
 	}
 
+	// Download rancher-image.txt
 	path, err := GetRancherImageList(latestRelease)
 	if err != nil {
 		fmt.Printf("%s\n", err)
+		return
 	}
-
 	fmt.Println(path)
 
+	releases, err := GetRepoStablRelease("rancher", "rancher")
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+
+	fmt.Printf("Num. Name - TagName\n")
+	for index, release := range releases {
+		fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
+	}
+
+	// Pull images listed in rancher-images.txt
 	// path, err = PullImages(path)
 	// if err != nil {
 	// 	fmt.Printf("%s\n", err)
 	// }
 
-	path, err = SaveImageFromFile(path)
-	if err != nil {
-		fmt.Printf("%s\n", err)
-	}
-
-	// releases, _, err := client.Repositories.ListReleases(context.Background(), "rancher", "rancher", nil)
+	// Create tar.gz with images listed in rancher-images.txt
+	// path, err = SaveImageFromFile(path)
 	// if err != nil {
-	// 	fmt.Printf("%s", err)
+	// 	fmt.Printf("%s\n", err)
 	// }
 
-	// fmt.Printf("%s\n", releases[0].GetTagName())
-	// fmt.Printf("%s - %s\n", latestRelease.GetName(), latestRelease.GetTagName())
+}
+
+// GetRepoStablRelease list stable release for given repo
+func GetRepoStablRelease(user string, repo string) ([]*github.RepositoryRelease, error) {
+	client := github.NewClient(nil)
+	releases, _, err := client.Repositories.ListReleases(context.Background(), "rancher", "rancher", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var stableReleases []*github.RepositoryRelease
+	for _, release := range releases {
+		if !release.GetPrerelease() {
+			stableReleases = append(stableReleases, release)
+		}
+	}
+
+	return stableReleases, nil
 }
 
 // GetRancherImageList download rancher-images.txt file from rancher release
