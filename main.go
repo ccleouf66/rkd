@@ -14,34 +14,53 @@ import (
 
 	"docker.io/go-docker"
 	"docker.io/go-docker/api/types"
+
+	"github.com/urfave/cli"
 )
 
 func main() {
-	client := github.NewClient(nil)
 
-	latestRelease, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
-	if err != nil {
-		fmt.Printf("%s", err)
+	app := cli.NewApp()
+	app.Name = "rkd"
+	app.Usage = "Rancher Kubernetes Downloader"
+
+	app.Commands = []*cli.Command{
+		{
+			Name:    "list",
+			Aliases: []string{"c"},
+			Usage:   "List Rancher stable release",
+			Action: func(c *cli.Context) error {
+				releases, err := GetRepoStablRelease("rancher", "rancher")
+				if err != nil {
+					// fmt.Printf("%s\n", err)
+					return err
+				}
+
+				fmt.Printf("Num. Name - TagName\n")
+				for index, release := range releases {
+					fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
+				}
+				return nil
+			},
+		},
 	}
 
-	// Download rancher-image.txt
-	path, err := GetRancherImageList(latestRelease, "tmp")
-	if err != nil {
-		fmt.Printf("%s\n", err)
-		return
-	}
-	fmt.Println(path)
+	app.Run(os.Args)
 
-	releases, err := GetRepoStablRelease("rancher", "rancher")
-	if err != nil {
-		fmt.Printf("%s\n", err)
-		return
-	}
+	// client := github.NewClient(nil)
 
-	fmt.Printf("Num. Name - TagName\n")
-	for index, release := range releases {
-		fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
-	}
+	// latestRelease, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
+	// if err != nil {
+	// 	fmt.Printf("%s", err)
+	// }
+
+	// // Download rancher-image.txt
+	// path, err := GetRancherImageList(latestRelease, "tmp")
+	// if err != nil {
+	// 	fmt.Printf("%s\n", err)
+	// 	return
+	// }
+	// fmt.Println(path)
 
 	// Pull images listed in rancher-images.txt
 	// path, err = PullImages(path)
