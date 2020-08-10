@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -58,6 +57,22 @@ func main() {
 
 }
 
+// CreateDestDir check and create directory if not exist
+func CreateDestDir(name string) error {
+	destInfo, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		errCreateDir := os.MkdirAll(name, 0755)
+		if errCreateDir != nil {
+			return err
+		}
+		return nil
+	} else if !destInfo.IsDir() {
+		return errors.New("Destination is file but should be a folder")
+	} else {
+		return err
+	}
+}
+
 // GetRepoStablRelease list stable release for given repo
 func GetRepoStablRelease(user string, repo string) ([]*github.RepositoryRelease, error) {
 	client := github.NewClient(nil)
@@ -89,13 +104,7 @@ func GetRancherImageList(release *github.RepositoryRelease, dest string) (path s
 		if asset.GetName() == "rancher-images.txt" {
 
 			// Create destination file
-			_, err := os.Stat(dest)
-			if os.IsNotExist(err) {
-				errCreateDir := os.MkdirAll(dest, 0755)
-				if errCreateDir != nil {
-					log.Fatal(err)
-				}
-			}
+			CreateDestDir(dest)
 			pathFile := fmt.Sprintf("%s/%s", dest, asset.GetName())
 			out, err := os.Create(pathFile)
 			if err != nil {
@@ -184,16 +193,7 @@ func SaveImageFromFile(imgListPath string, dest string) (tarPath string, err err
 	}
 
 	// Create destination dir and file
-	destInfo, err := os.Stat(dest)
-	if os.IsNotExist(err) {
-		errCreateDir := os.MkdirAll(dest, 0755)
-		if errCreateDir != nil {
-			log.Fatal(err)
-		}
-	}
-	if !destInfo.IsDir() {
-		return "", errors.New("Destination is file but should be a folder")
-	}
+	CreateDestDir(dest)
 	pathFile := fmt.Sprintf("%s/rancher-images.tar.gz", dest)
 	tarfile, err := os.Create(pathFile)
 	if err != nil {
