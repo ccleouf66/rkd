@@ -15,10 +15,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ccleouf66/rkd/cmd"
+
 	"gopkg.in/yaml.v2"
 
 	"github.com/gofrs/flock"
 	"github.com/google/go-github/github"
+	"github.com/urfave/cli"
 
 	"docker.io/go-docker"
 	"docker.io/go-docker/api/types"
@@ -48,30 +51,13 @@ func main() {
 	// Add helm repo
 	RepoAdd(repoName, url)
 
-	// app := cli.NewApp()
-	// app.Name = "rkd"
-	// app.Usage = "Rancher Kubernetes Downloader"
+	app := cli.NewApp()
+	app.Name = "rkd"
+	app.Usage = "Rancher Kubernetes Downloader"
 
-	// app.Commands = []cli.Command{
-	// 	{
-	// 		Name:    "list",
-	// 		Aliases: []string{"c"},
-	// 		Usage:   "List Rancher stable release",
-	// 		Action: func(c *cli.Context) error {
-	// 			releases, err := GetRepoStablRelease("rancher", "rancher")
-	// 			if err != nil {
-	// 				// fmt.Printf("%s\n", err)
-	// 				return err
-	// 			}
-
-	// 			fmt.Printf("Num. Name - TagName\n")
-	// 			for index, release := range releases {
-	// 				fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
-	// 			}
-	// 			return nil
-	// 		},
-	// 	},
-	// }
+	app.Commands = []cli.Command{
+		cmd.ListCommand()
+	}
 
 	// app.Run(os.Args)
 
@@ -178,24 +164,6 @@ func CreateDestDir(name string) error {
 	} else {
 		return err
 	}
-}
-
-// GetRepoStablRelease list stable release for given repo
-func GetRepoStablRelease(user string, repo string) ([]*github.RepositoryRelease, error) {
-	client := github.NewClient(nil)
-	releases, _, err := client.Repositories.ListReleases(context.Background(), "rancher", "rancher", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	var stableReleases []*github.RepositoryRelease
-	for _, release := range releases {
-		if !release.GetPrerelease() {
-			stableReleases = append(stableReleases, release)
-		}
-	}
-
-	return stableReleases, nil
 }
 
 // GetRancherImageList download rancher-images.txt file from rancher release
