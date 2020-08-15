@@ -7,45 +7,73 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
+	"gopkg.in/yaml.v2"
+
+	"github.com/gofrs/flock"
 	"github.com/google/go-github/github"
 
 	"docker.io/go-docker"
 	"docker.io/go-docker/api/types"
 
-	"github.com/urfave/cli"
+	helm_cli "helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/repo"
+)
+
+var settings *helm_cli.EnvSettings
+
+var (
+	url         = "https://kubernetes-charts.storage.googleapis.com"
+	repoName    = "stable"
+	chartName   = "mysql"
+	releaseName = "mysql-dev"
+	namespace   = "mysql-test"
+	args        = map[string]string{
+		// comma seperated values to set
+		"set": "mysqlRootPassword=admin@123,persistence.enabled=false,imagePullPolicy=Always",
+	}
 )
 
 func main() {
 
-	app := cli.NewApp()
-	app.Name = "rkd"
-	app.Usage = "Rancher Kubernetes Downloader"
+	settings = helm_cli.New()
+	// Add helm repo
+	RepoAdd(repoName, url)
 
-	app.Commands = []*cli.Command{
-		{
-			Name:    "list",
-			Aliases: []string{"c"},
-			Usage:   "List Rancher stable release",
-			Action: func(c *cli.Context) error {
-				releases, err := GetRepoStablRelease("rancher", "rancher")
-				if err != nil {
-					// fmt.Printf("%s\n", err)
-					return err
-				}
+	// app := cli.NewApp()
+	// app.Name = "rkd"
+	// app.Usage = "Rancher Kubernetes Downloader"
 
-				fmt.Printf("Num. Name - TagName\n")
-				for index, release := range releases {
-					fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
-				}
-				return nil
-			},
-		},
-	}
+	// app.Commands = []cli.Command{
+	// 	{
+	// 		Name:    "list",
+	// 		Aliases: []string{"c"},
+	// 		Usage:   "List Rancher stable release",
+	// 		Action: func(c *cli.Context) error {
+	// 			releases, err := GetRepoStablRelease("rancher", "rancher")
+	// 			if err != nil {
+	// 				// fmt.Printf("%s\n", err)
+	// 				return err
+	// 			}
 
-	app.Run(os.Args)
+	// 			fmt.Printf("Num. Name - TagName\n")
+	// 			for index, release := range releases {
+	// 				fmt.Printf("%d. %s - %s\n", index, release.GetName(), release.GetTagName())
+	// 			}
+	// 			return nil
+	// 		},
+	// 	},
+	// }
+
+	// app.Run(os.Args)
 
 	// client := github.NewClient(nil)
 
@@ -74,6 +102,66 @@ func main() {
 	// 	fmt.Printf("%s\n", err)
 	// }
 
+}
+
+// RepoAdd adds repo with given name and url
+func RepoAdd(name, url string) {
+	repoFile := settings.RepositoryConfig
+	fmt.Println(repoFile)
+
+	//Ensure the file directory exists as it is required for file locking
+	err := os.MkdirAll(filepath.Dir(repoFile), os.ModePerm)
+	if err != nil && !os.IsExist(err) {
+		log.Fatal(err)
+	}
+
+	// Acquire a file lock for process synchronization
+	fileLock := flock.New(strings.Replace(repoFile, filepath.Ext(repoFile), ".lock", 1))
+	lockCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	locked, err := fileLock.TryLockContext(lockCtx, time.Second)
+	if err == nil && locked {
+		defer fileLock.Unlock()
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	b, err := ioutil.ReadFile(repoFile)
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+
+	var f repo.File
+	if err := yaml.Unmarshal(b, &f); err != nil {
+		log.Fatal(err)
+	}
+
+	if f.Has(name) {
+		fmt.Printf("repository name (%s) already exists\n", name)
+		return
+	}
+
+	c := repo.Entry{
+		Name: name,
+		URL:  url,
+	}
+
+	r, err := repo.NewChartRepository(&c, getter.All(settings))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err := r.DownloadIndexFile(); err != nil {
+		log.Fatal(err)
+	}
+
+	f.Update(&c)
+
+	if err := f.WriteFile(repoFile, 0644); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%q has been added to your repositories\n", name)
 }
 
 // CreateDestDir check and create directory if not exist
@@ -132,7 +220,7 @@ func GetRancherImageList(release *github.RepositoryRelease, dest string) (path s
 			defer out.Close()
 
 			// Try to download file
-			rc, redirect, err := client.Repositories.DownloadReleaseAsset(context.Background(), "rancher", "rancher", asset.GetID(), nil)
+			rc, redirect, err := client.Repositories.DownloadReleaseAsset(context.Background(), "rancher", "rancher", asset.GetID())
 			if err != nil {
 				return "", err
 			}
