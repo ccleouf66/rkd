@@ -20,8 +20,8 @@
 		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached"
 	],
 
-	"workspaceMount": "source=${localWorkspaceFolder},target=/go/src/github.com/ccleouf66/rkd,type=bind,consistency=delegated",
-	"workspaceFolder": "/go/src/github.com/ccleouf66"
+	"workspaceMount": "source=${localWorkspaceFolder},target=/go/src/rkd,type=bind,consistency=delegated",
+	"workspaceFolder": "/go/src/rkd"
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
