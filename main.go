@@ -1,7 +1,13 @@
 package main
 
 import (
-	"rkd/helm"
+	"context"
+	"fmt"
+
+	"rkd/containers"
+	"rkd/git"
+
+	"github.com/google/go-github/v32/github"
 )
 
 var (
@@ -14,25 +20,38 @@ var (
 func main() {
 
 	// Add helm repo
-	helm.RepoAdd(repoName, url)
-	helm.RepoAdd("rancher-stable", "https://releases.rancher.com/server-charts/stable")
-	helm.RepoUpdate()
-	helm.DownloadChart("rancher-stable", "rancher", "tmp")
+	// helm.RepoAdd(repoName, url)
+	// helm.RepoAdd("rancher-stable", "https://releases.rancher.com/server-charts/stable")
+	// helm.RepoUpdate()
+	// helm.DownloadChart("rancher-stable", "rancher", "tmp")
 
-	// client := github.NewClient(nil)
+	client := github.NewClient(nil)
 
-	// latestRelease, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
+	latestRelease, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
+	if err != nil {
+		fmt.Printf("%s", err)
+	}
+
+	// Download rancher-image.txt
+	pathImageList, err := git.GetRancherImageList(latestRelease, "tmp")
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
+
+	// Read image lits
+	// imgList, err := os.Open(pathImageList)
 	// if err != nil {
 	// 	fmt.Printf("%s", err)
-	// }
-
-	// // Download rancher-image.txt
-	// pathImageList, err := git.GetRancherImageList(latestRelease, "tmp")
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
 	// 	return
 	// }
-	// fmt.Println(pathImageList)
+	// defer imgList.Close()
+
+	// scanner := bufio.NewScanner(imgList)
+	// for scanner.Scan() {
+	containers.DownloadImage(scanner.Text(), "tmp/img.tar")
+	// containers.DownloadImage(scanner.Text(), "/dev/stdin")
+	//}
 
 	// // Pull images listed in rancher-images.txt
 	// err = docker.PullImages(pathImageList)
