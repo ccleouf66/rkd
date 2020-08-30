@@ -19,52 +19,30 @@ var (
 
 func main() {
 
+	// //Helm
 	// Add helm repo
 	// helm.RepoAdd(repoName, url)
 	// helm.RepoAdd("rancher-stable", "https://releases.rancher.com/server-charts/stable")
 	// helm.RepoUpdate()
 	// helm.DownloadChart("rancher-stable", "rancher", "tmp")
 
+	// Containers images
 	client := github.NewClient(nil)
 
+	// Get Rancher latest stable
 	latestRelease, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
 	if err != nil {
 		fmt.Printf("%s", err)
 	}
 
-	// Download rancher-image.txt
+	// Download rancher-image.txt of from latest stable
 	pathImageList, err := git.GetRancherImageList(latestRelease, "tmp")
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		return
 	}
 
-	// Read image lits
-	// imgList, err := os.Open(pathImageList)
-	// if err != nil {
-	// 	fmt.Printf("%s", err)
-	// 	return
-	// }
-	// defer imgList.Close()
-
-	// scanner := bufio.NewScanner(imgList)
-	// for scanner.Scan() {
-	containers.DownloadImage(scanner.Text(), "tmp/img.tar")
-	// containers.DownloadImage(scanner.Text(), "/dev/stdin")
-	//}
-
-	// // Pull images listed in rancher-images.txt
-	// err = docker.PullImages(pathImageList)
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
-	// }
-
-	// // Create tar.gz with images listed in rancher-images.txt
-	// path, err := docker.SaveImageFromFile(pathImageList, "tmp/rancher-images.tar.gz")
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
-	// }
-	// fmt.Printf("%s creates", path)
+	containers.DownloadImage(pathImageList, "tmp/img.tar")
 
 	// app := cli.NewApp()
 	// app.Name = "rkd"

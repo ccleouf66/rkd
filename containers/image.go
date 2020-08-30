@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/image/docker/archive"
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -16,7 +15,7 @@ import (
 func DownloadImage(src string, dest string) {
 
 	// Contexts
-	defaultPolicy, err := signature.DefaultPolicy(nil)
+	defaultPolicy, err := signature.NewPolicyFromFile("policy.json")
 	if err != nil {
 		fmt.Printf("default policy err: %s\n", err)
 	}
@@ -56,23 +55,33 @@ func DownloadImage(src string, dest string) {
 
 	scanner := bufio.NewScanner(imgList)
 
-	wip := archive.NewReference
+	// wip := archive.NewWriter()
+
 	for scanner.Scan() {
 
-		// Ref and Dest
-		imgRef := fmt.Sprintf("%s%s", "docker://", src)
+		// Ref
+		imgRef := fmt.Sprintf("%s%s", "docker://", scanner.Text())
 		srcRef, err := alltransports.ParseImageName(imgRef)
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 
-		destRef := wip.NewReference(scanner.Text())
-		copy.Image(context.Background(), policyContext, srcRef, destRef, &copy.Options{
+		// Dest
+		archDest := fmt.Sprintf("%s:%s:%s", "docker-archive", dest, scanner.Text())
+		destRef, err := alltransports.ParseImageName(archDest)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+		}
+		// destRef := wip.NewReference(scanner.Text())
+
+		// Download and create tar
+		fmt.Printf("Copy %s to %s\n", imgRef, archDest)
+		_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			ReportWriter: os.Stdout,
 		})
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 	}
-	wip.Finish()
+	// wip.Finish()
 }
