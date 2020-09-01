@@ -18,18 +18,16 @@ var (
 	rancherChartName = "rancher"
 )
 
-// DownloadCommand
+// DownloadCommand return downlaod cli command
 func DownloadCommand() cli.Command {
 	DownloadFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "helm",
 			Usage: "Download Rancher helm chart",
-			// Value: "latest",
 		},
 		cli.StringFlag{
 			Name:  "images",
 			Usage: "Download Rancher iamges",
-			// Value: "2.4.5",
 		},
 	}
 
@@ -42,7 +40,7 @@ func DownloadCommand() cli.Command {
 	}
 }
 
-// DownloadRancherRelease
+// DownloadRancherRelease downlaod Rancher chart and images
 func DownloadRancherRelease(c *cli.Context) {
 	if c.String("helm") != "" {
 		if c.String("helm") == "latest" {
@@ -65,8 +63,8 @@ func DownloadRancherRelease(c *cli.Context) {
 	GetRancherImages("latest")
 }
 
+// GetRancherImages downalod rancher images
 func GetRancherImages(version string) {
-	fmt.Printf("%s\n", version)
 	client := github.NewClient(nil)
 
 	var release *github.RepositoryRelease
@@ -98,6 +96,7 @@ func GetRancherImages(version string) {
 	containers.DownloadImage(pathImageList, dest)
 }
 
+// GetRancherHelmChart downalod rancher chart
 func GetRancherHelmChart(version string) {
 	helm.RepoAdd(rancherRepoName, rancherRepoURL)
 	helm.RepoUpdate()
