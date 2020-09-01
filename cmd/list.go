@@ -10,11 +10,20 @@ import (
 
 // ListCommand .
 func ListCommand() cli.Command {
+	listFlags := []cli.Flag{
+		cli.StringFlag{
+			Name:  "helm",
+			Usage: "List",
+			Value: "latest",
+		},
+	}
+
 	return cli.Command{
 		Name:    "list",
-		Aliases: []string{"c"},
+		Aliases: []string{"l"},
 		Usage:   "List Rancher stable release",
 		Action:  listRepoStableRelease,
+		Flags:   listFlags,
 	}
 }
 
