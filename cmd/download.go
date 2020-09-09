@@ -43,24 +43,20 @@ func DownloadCommand() cli.Command {
 // DownloadRancherRelease downlaod Rancher chart and images
 func DownloadRancherRelease(c *cli.Context) {
 	if c.String("helm") != "" {
-		if c.String("helm") == "latest" {
-			fmt.Printf("Getting latest Rancher helm chart\n")
-			GetRancherHelmChart(c.String("helm"))
-		} else {
-			fmt.Printf("Getting Rancher helm chart %s\n", c.String("helm"))
-		}
-		return
+		fmt.Printf("Getting Rancher chart %s\n", c.String("helm"))
+		GetRancherHelmChart(c.String("helm"))
 	}
 
 	if c.String("images") != "" {
-		fmt.Printf("Getting Rancher %s images\n", c.String("images"))
+		fmt.Printf("Getting images for Rancher %s\n", c.String("images"))
 		GetRancherImages(c.String("images"))
-		return
 	}
 
 	// If no flag provided, download latest chart and images
-	GetRancherHelmChart("latest")
-	GetRancherImages("latest")
+	if c.String("helm") == "" && c.String("images") == "" {
+		GetRancherHelmChart("latest")
+		GetRancherImages("latest")
+	}
 }
 
 // GetRancherImages downalod rancher images
@@ -76,6 +72,7 @@ func GetRancherImages(version string) {
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
+		version = release.GetTagName()
 	} else {
 		// Get release by tag
 		release, _, err = client.Repositories.GetReleaseByTag(context.Background(), "rancher", "rancher", version)
@@ -98,7 +95,15 @@ func GetRancherImages(version string) {
 
 // GetRancherHelmChart downalod rancher chart
 func GetRancherHelmChart(version string) {
+	if version == "latest" {
+		client := github.NewClient(nil)
+		release, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
+		if err != nil {
+			fmt.Printf("%s\n", err)
+		}
+		version = release.GetTagName()
+	}
 	helm.RepoAdd(rancherRepoName, rancherRepoURL)
 	helm.RepoUpdate()
-	helm.DownloadChart(rancherRepoName, rancherChartName, version)
+	helm.DownloadChart(rancherRepoName, rancherChartName, version, version)
 }

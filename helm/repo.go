@@ -123,7 +123,7 @@ func RepoUpdate() {
 }
 
 // DownloadChart download a chart from public repo to local folder
-func DownloadChart(repo string, chart string, dest string) {
+func DownloadChart(repo string, chart string, version string, dest string) {
 
 	settings := cli.New()
 
@@ -149,7 +149,7 @@ func DownloadChart(repo string, chart string, dest string) {
 	chartRef := fmt.Sprintf("%s/%s", repo, chart)
 	helpers.CreateDestDir(dest)
 
-	path, verif, err := chartDownloader.DownloadTo(chartRef, "", dest)
+	path, verif, err := chartDownloader.DownloadTo(chartRef, version, dest)
 	if err != nil {
 		log.Fatal(err)
 	}
