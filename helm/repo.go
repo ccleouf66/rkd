@@ -60,7 +60,6 @@ func RepoAdd(name, url string) {
 	}
 
 	if f.Has(name) {
-		fmt.Printf("repository name (%s) already exists\n", name)
 		return
 	}
 
@@ -83,7 +82,6 @@ func RepoAdd(name, url string) {
 	if err := f.WriteFile(repoFile, 0644); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("%q has been added to your repositories\n", name)
 }
 
 // RepoUpdate updates charts for all helm repos
@@ -94,7 +92,7 @@ func RepoUpdate() {
 
 	f, err := repo.LoadFile(repoFile)
 	if os.IsNotExist(errors.Cause(err)) || len(f.Repositories) == 0 {
-		log.Fatal(errors.New("no repositories found. You must add one before updating"))
+		log.Fatal(errors.New("No repositories found. You must add one before updating"))
 	}
 	var repos []*repo.ChartRepository
 	for _, cfg := range f.Repositories {
@@ -112,14 +110,14 @@ func RepoUpdate() {
 		go func(re *repo.ChartRepository) {
 			defer wg.Done()
 			if _, err := re.DownloadIndexFile(); err != nil {
-				fmt.Printf("...Unable to get an update from the %q chart repository (%s):\n\t%s\n", re.Config.Name, re.Config.URL, err)
+				fmt.Printf("Unable to get an update from the %q chart repository (%s):\n\t%s\n", re.Config.Name, re.Config.URL, err)
 			} else {
-				fmt.Printf("...Successfully got an update from the %q chart repository\n", re.Config.Name)
+				fmt.Printf("Successfully got an update from the %q chart repository\n", re.Config.Name)
 			}
 		}(re)
 	}
 	wg.Wait()
-	fmt.Printf("Update Complete. ⎈ Happy Helming! ⎈\n")
+	fmt.Printf("Chart updated. ⎈ Happy Helming! ⎈\n")
 }
 
 // DownloadChart download a chart from public repo to local folder
