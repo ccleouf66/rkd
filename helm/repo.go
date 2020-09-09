@@ -147,15 +147,12 @@ func DownloadChart(repo string, chart string, version string, dest string) {
 	chartRef := fmt.Sprintf("%s/%s", repo, chart)
 	helpers.CreateDestDir(dest)
 
-	path, verif, err := chartDownloader.DownloadTo(chartRef, version, dest)
+	path, _, err := chartDownloader.DownloadTo(chartRef, version, dest)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Printf("Chart downloaded to %s\n", path)
-	if verif != nil {
-		fmt.Printf("Chart verif: %s\n", verif)
-	}
 }
 
 func debug(format string, v ...interface{}) {
