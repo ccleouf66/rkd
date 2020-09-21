@@ -5,8 +5,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 )
@@ -25,25 +28,18 @@ func DownloadImage(src string, dest string) {
 	}
 	defer policyContext.Destroy()
 
-	// // Ref and Dest
-	// imgRef := fmt.Sprintf("%s%s", "docker://", src)
-	// srcRef, err := alltransports.ParseImageName(imgRef)
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
-	// }
-	// archDest := fmt.Sprintf("%s:%s:%s", "docker-archive", dest, src)
-	// destRef, err := alltransports.ParseImageName(archDest)
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
+	// Create systemContext to force linux os
+	// sysCtx := &types.SystemContext{
+	// 	ArchitectureChoice: "arm",
+	// 	OSChoice:           "linux",
 	// }
 
-	// data, err := copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
-	// 	ReportWriter: os.Stdout,
-	// })
-	// if err != nil {
-	// 	fmt.Printf("%s\n", err)
-	// }
-	// fmt.Printf("%s\n", data)
+	// Create new dest archive
+	aw, err := archive.NewWriter(nil, dest)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	defer aw.Close()
 
 	// Read image lits
 	imgList, err := os.Open(src)
@@ -52,10 +48,7 @@ func DownloadImage(src string, dest string) {
 		return
 	}
 	defer imgList.Close()
-
 	scanner := bufio.NewScanner(imgList)
-
-	// wip := archive.NewWriter()
 
 	for scanner.Scan() {
 
@@ -66,16 +59,34 @@ func DownloadImage(src string, dest string) {
 			fmt.Printf("%s\n", err)
 		}
 
-		// Dest
-		archDest := fmt.Sprintf("%s:%s:%s", "docker-archive", dest, scanner.Text())
-		destRef, err := alltransports.ParseImageName(archDest)
+		////////// Dest
+		// Get image name
+		imgNamed, err := reference.ParseDockerRef(scanner.Text())
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
-		// destRef := wip.NewReference(scanner.Text())
+
+		// Get tag from image ref
+		strSlice := strings.Split(scanner.Text(), ":")
+		tag := "latest"
+		if len(strSlice) > 1 {
+			tag = strSlice[len(strSlice)-1]
+		}
+		imgNameTagged, err := reference.WithTag(imgNamed, tag)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+		}
+		fmt.Printf("NamedTagged ========> %s\n", imgNameTagged)
+
+		// Create dest ref
+		destRef, err := aw.NewReference(imgNameTagged)
+		if err != nil {
+			fmt.Printf("%s\n", err)
+		}
+		//////////
 
 		// Download and create tar
-		fmt.Printf("Copy %s to %s\n", imgRef, archDest)
+		fmt.Printf("Copy %s to %s\n", imgRef, dest)
 		_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			ReportWriter: os.Stdout,
 		})
@@ -83,5 +94,4 @@ func DownloadImage(src string, dest string) {
 			fmt.Printf("%s\n", err)
 		}
 	}
-	// wip.Finish()
 }
