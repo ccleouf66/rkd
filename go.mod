@@ -10,8 +10,10 @@ require (
 	github.com/urfave/cli v1.22.4
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
-	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
+	golang.org/x/sys v0.0.0-20200922070232-aee5d888a860 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.3.0
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
+
+replace github.com/containerd/containerd v1.3.4 => github.com/containerd/containerd v1.4.1

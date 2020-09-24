@@ -2,9 +2,9 @@
 Rancher Kubernetes Downloader, tool to list and download Rancher release for Air Gapped Environment.
 
 ## To do
-- bug when downloading multiple images in the same archive
 - download rke binary to complet package
-
+- add go minio client to upload datapack
+- improve .devcontainer docker image with go extension
 
 ## List Rancher version
 To list the latests version of Rancher:
