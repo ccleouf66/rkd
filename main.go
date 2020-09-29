@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-
 	app := cli.NewApp()
 	app.Name = "rkd"
 	app.Usage = "Rancher Kubernetes Downloader"
