@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 )
 
 // DownloadImage download docker images from src and create docker-archive
@@ -27,12 +28,6 @@ func DownloadImage(src string, dest string) {
 		fmt.Printf("Policy context err: %s\n", err)
 	}
 	defer policyContext.Destroy()
-
-	// Create systemContext to force linux os
-	// sysCtx := &types.SystemContext{
-	// 	ArchitectureChoice: "arm",
-	// 	OSChoice:           "linux",
-	// }
 
 	// Create new dest archive
 	aw, err := archive.NewWriter(nil, dest)
@@ -85,10 +80,18 @@ func DownloadImage(src string, dest string) {
 		}
 		//////////
 
+		// Create systemContext to force linux os
+		sysCtx := &types.SystemContext{
+			ArchitectureChoice: "arm",
+			OSChoice:           "linux",
+		}
+
 		// Download and create tar
 		fmt.Printf("Copy %s to %s\n", imgRef, dest)
 		_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			ReportWriter: os.Stdout,
+			// SourceCtx: ,
+			DestinationCtx: sysCtx,
 		})
 		if err != nil {
 			fmt.Printf("%s\n", err)
