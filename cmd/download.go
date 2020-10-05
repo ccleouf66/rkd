@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"os"
 
 	"rkd/containers"
 	"rkd/git"
@@ -88,9 +90,23 @@ func GetRancherImages(version string) {
 		return
 	}
 
+	// Create imageList
+	imgListFile, err := os.Open(pathImageList)
+	if err != nil {
+		fmt.Printf("%s", err)
+		return
+	}
+	defer imgListFile.Close()
+
+	scanner := bufio.NewScanner(imgListFile)
+	var imgList []string
+	for scanner.Scan() {
+		imgList = append(imgList, scanner.Text())
+	}
+
 	// Downlaod container images
-	dest := fmt.Sprintf("%s/rancher-%s.tar", version, release.GetTagName())
-	containers.DownloadImage(pathImageList, dest)
+	dest := fmt.Sprintf("%s/rancher-images-%s.tar", version, release.GetTagName())
+	containers.DownloadImage(imgList, dest)
 }
 
 // GetRancherHelmChart downalod rancher chart

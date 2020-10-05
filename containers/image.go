@@ -1,7 +1,6 @@
 package containers
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -16,7 +15,9 @@ import (
 )
 
 // DownloadImage download docker images from src and create docker-archive
-func DownloadImage(src string, dest string) {
+func DownloadImage(imgList []string, dest string) {
+
+	// Check regs auth
 
 	// Contexts
 	defaultPolicy, err := signature.NewPolicyFromFile("policy.json")
@@ -36,19 +37,11 @@ func DownloadImage(src string, dest string) {
 	}
 	defer aw.Close()
 
-	// Read image lits
-	imgList, err := os.Open(src)
-	if err != nil {
-		fmt.Printf("%s", err)
-		return
-	}
-	defer imgList.Close()
-	scanner := bufio.NewScanner(imgList)
-
-	for scanner.Scan() {
+	//for scanner.Scan() {
+	for _, img := range imgList {
 
 		// Ref
-		imgRef := fmt.Sprintf("%s%s", "docker://", scanner.Text())
+		imgRef := fmt.Sprintf("%s%s", "docker://", img)
 		srcRef, err := alltransports.ParseImageName(imgRef)
 		if err != nil {
 			fmt.Printf("%s\n", err)
@@ -56,13 +49,13 @@ func DownloadImage(src string, dest string) {
 
 		////////// Dest
 		// Get image name
-		imgNamed, err := reference.ParseDockerRef(scanner.Text())
+		imgNamed, err := reference.ParseDockerRef(img)
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 
 		// Get tag from image ref
-		strSlice := strings.Split(scanner.Text(), ":")
+		strSlice := strings.Split(img, ":")
 		tag := "latest"
 		if len(strSlice) > 1 {
 			tag = strSlice[len(strSlice)-1]
