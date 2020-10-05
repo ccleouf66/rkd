@@ -82,7 +82,7 @@ func DownloadImage(src string, dest string) {
 
 		// Create systemContext to force linux os
 		sysCtx := &types.SystemContext{
-			ArchitectureChoice: "arm",
+			ArchitectureChoice: "amd64",
 			OSChoice:           "linux",
 		}
 
@@ -90,8 +90,8 @@ func DownloadImage(src string, dest string) {
 		fmt.Printf("Copy %s to %s\n", imgRef, dest)
 		_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			ReportWriter: os.Stdout,
-			// SourceCtx: ,
-			DestinationCtx: sysCtx,
+			SourceCtx: sysCtx,
+			//DestinationCtx: sysCtx,
 		})
 		if err != nil {
 			fmt.Printf("%s\n", err)

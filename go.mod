@@ -15,5 +15,5 @@ require (
 	helm.sh/helm/v3 v3.3.0
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
-
+replace golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
 replace github.com/containerd/containerd v1.3.4 => github.com/containerd/containerd v1.4.1
