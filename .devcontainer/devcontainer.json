@@ -16,9 +16,9 @@
 		"golang.Go"
 	],
 
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached"
-	],
+	// "mounts": [
+	// 	"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind,consistency=cached"
+	// ],
 
 	"workspaceMount": "source=${localWorkspaceFolder},target=/go/src/rkd,type=bind,consistency=delegated",
 	"workspaceFolder": "/go/src/rkd"

@@ -71,7 +71,6 @@ func DownloadImage(src string, dest string) {
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
-		fmt.Printf("NamedTagged ========> %s\n", imgNameTagged)
 
 		// Create dest ref
 		destRef, err := aw.NewReference(imgNameTagged)
@@ -80,7 +79,7 @@ func DownloadImage(src string, dest string) {
 		}
 		//////////
 
-		// Create systemContext to force linux os
+		// Create systemContext to select os and arch
 		sysCtx := &types.SystemContext{
 			ArchitectureChoice: "amd64",
 			OSChoice:           "linux",
@@ -90,8 +89,7 @@ func DownloadImage(src string, dest string) {
 		fmt.Printf("Copy %s to %s\n", imgRef, dest)
 		_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 			ReportWriter: os.Stdout,
-			SourceCtx: sysCtx,
-			//DestinationCtx: sysCtx,
+			SourceCtx:    sysCtx,
 		})
 		if err != nil {
 			fmt.Printf("%s\n", err)
