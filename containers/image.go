@@ -37,7 +37,6 @@ func DownloadImage(imgList []string, dest string) {
 	}
 	defer aw.Close()
 
-	//for scanner.Scan() {
 	for _, img := range imgList {
 
 		// Ref
@@ -48,19 +47,12 @@ func DownloadImage(imgList []string, dest string) {
 		}
 
 		////////// Dest
-		// Get image name
 		imgNamed, err := reference.ParseDockerRef(img)
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
 
-		// Get tag from image ref
-		strSlice := strings.Split(img, ":")
-		tag := "latest"
-		if len(strSlice) > 1 {
-			tag = strSlice[len(strSlice)-1]
-		}
-		imgNameTagged, err := reference.WithTag(imgNamed, tag)
+		imgNameTagged, err := reference.WithTag(imgNamed, getImgTag(img))
 		if err != nil {
 			fmt.Printf("%s\n", err)
 		}
@@ -89,3 +81,16 @@ func DownloadImage(imgList []string, dest string) {
 		}
 	}
 }
+
+func getImgTag(imgStr string) string {
+	strSlice := strings.Split(imgStr, ":")
+	tag := "latest"
+	if len(strSlice) > 1 {
+		tag = strSlice[len(strSlice)-1]
+	}
+	return tag
+}
+
+// func CheckRegAuth(imgs []string) {
+
+// }
