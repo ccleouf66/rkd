@@ -9,6 +9,7 @@ import (
 	"rkd/containers"
 	"rkd/git"
 	"rkd/helm"
+	"rkd/helpers"
 
 	"github.com/google/go-github/v32/github"
 	"github.com/urfave/cli"
@@ -25,44 +26,58 @@ func DownloadCommand() cli.Command {
 	DownloadFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "helm",
-			Usage: "Download Rancher helm chart",
+			Usage: "Download a helm chart list.\n rkd download --helm",
+		},
+		cli.StringSliceFlag{
+			Name:  "image",
+			Usage: "Download an imgae list.\n rkd download --image busybox --image alpine",
 		},
 		cli.StringFlag{
-			Name:  "images",
-			Usage: "Download Rancher iamges",
+			Name:  "rancher",
+			Usage: "Download Rancher images, rke and helm chart.\n rkd download --rancher v2.5.0",
 		},
 	}
 
 	return cli.Command{
 		Name:    "download",
 		Aliases: []string{"d"},
-		Usage:   "Downlaod Rancher stable release",
-		Action:  DownloadRancherRelease,
+		Usage:   "Downlaod helm chart list, container images and Rancher release",
+		Action:  DownloadDataPack,
 		Flags:   DownloadFlags,
 	}
 }
 
 // DownloadRancherRelease downlaod Rancher chart and images
-func DownloadRancherRelease(c *cli.Context) {
-	if c.String("helm") != "" {
-		fmt.Printf("Getting Rancher chart %s\n", c.String("helm"))
-		GetRancherHelmChart(c.String("helm"))
+func DownloadDataPack(c *cli.Context) {
+
+	dest := helpers.GenFileName("datapack")
+	helpers.CreateDestDir(dest)
+
+	if len(c.StringSlice("image")) > 0 {
+		destImg := fmt.Sprintf("%s/images.tar", dest)
+		containers.DownloadImage(c.StringSlice("image"), destImg)
 	}
 
-	if c.String("images") != "" {
-		fmt.Printf("Getting images for Rancher %s\n", c.String("images"))
-		GetRancherImages(c.String("images"))
+	if c.String("rancher") != "" {
+		fmt.Printf("Getting Rancher %s\n", c.String("rancher"))
+		GetRancherHelmChart(c.String("rancher"), dest)
+		GetRancherImages(c.String("rancher"), dest)
 	}
+
+	// if c.String("helm") != "" {
+	// 	fmt.Printf("Getting Rancher chart %s\n", c.String("helm"))
+	// 	GetRancherHelmChart(c.String("helm"))
+	// }
 
 	// If no flag provided, download latest chart and images
-	if c.String("helm") == "" && c.String("images") == "" {
-		GetRancherHelmChart("latest")
-		GetRancherImages("latest")
+	if c.String("rancher") == "" && c.String("image") == "" {
+		GetRancherHelmChart("latest", dest)
+		GetRancherImages("latest", dest)
 	}
 }
 
 // GetRancherImages downalod rancher images
-func GetRancherImages(version string) {
+func GetRancherImages(version string, dest string) {
 	client := github.NewClient(nil)
 
 	var release *github.RepositoryRelease
@@ -84,7 +99,7 @@ func GetRancherImages(version string) {
 	}
 
 	// Download rancher-image.txt of from latest stable
-	pathImageList, err := git.GetRancherImageList(release, version)
+	pathImageList, err := git.GetRancherImageList(release, dest)
 	if err != nil {
 		fmt.Printf("%s\n", err)
 		return
@@ -105,12 +120,12 @@ func GetRancherImages(version string) {
 	}
 
 	// Downlaod container images
-	dest := fmt.Sprintf("%s/rancher-images-%s.tar", version, release.GetTagName())
-	containers.DownloadImage(imgList, dest)
+	destImg := fmt.Sprintf("%s/rancher-images-%s.tar", dest, release.GetTagName())
+	containers.DownloadImage(imgList, destImg)
 }
 
 // GetRancherHelmChart downalod rancher chart
-func GetRancherHelmChart(version string) {
+func GetRancherHelmChart(version string, dest string) {
 	if version == "latest" {
 		client := github.NewClient(nil)
 		release, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
@@ -121,5 +136,5 @@ func GetRancherHelmChart(version string) {
 	}
 	helm.RepoAdd(rancherRepoName, rancherRepoURL)
 	helm.RepoUpdate()
-	helm.DownloadChart(rancherRepoName, rancherChartName, version, version)
+	helm.DownloadChart(rancherRepoName, rancherChartName, version, dest)
 }
