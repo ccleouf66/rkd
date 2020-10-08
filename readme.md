@@ -24,23 +24,42 @@ Num. Name - TagName
 To downlaod the package in order install a Rancher on Air Gapped environment (helm chart + images):
 
 ```bash
-# Downlaod latest chart & images
+# Downlaod latest chart & images of rancher
 ./rkd downlaod
 ```
 
 ```bash
-# Downlaod only chart v2.4.5
-./rkd downlaod --helm v2.4.5
+# Downlaod only busybox and alpine images
+./rkd downlaod --image busybox --image alpine
 ```
 
 ```bash
-# Downlaod only images v2.4.5
-./rkd downlaod --images v2.4.5
+# Downlaod rancher v2.5.0 and alpine image
+./rkd d --rancher v2.4.8 --image alpine
 ```
 
+## Auth
+rkd uses Docker credential helpers to pull images from a registry.
+
+Get your docker registry user and password encoded in base64
 ```bash
-# Downlaod chart & images v2.4.7
-./rkd downlaod --helm v2.4.7 --images v2.4.7
+echo -n USER:PASSWORD | base64
+```
+
+Create a <b>config.json</b> file with your Docker registry url and the previous generated base64 string
+```json
+{
+	"auths": {
+		"https://index.docker.io/v1/": {
+			"auth": "xxxxxxxxxxxxxxx"
+		}
+	}
+}
+```
+
+Run rkd with the config.json inside your home dir.
+```bash
+~/.docker/config.json
 ```
 
 ## Building dependencies

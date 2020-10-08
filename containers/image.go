@@ -17,8 +17,6 @@ import (
 // DownloadImage download docker images from src and create docker-archive
 func DownloadImage(imgList []string, dest string) {
 
-	// Check regs auth
-
 	// Contexts
 	defaultPolicy, err := signature.NewPolicyFromFile("policy.json")
 	if err != nil {
@@ -90,7 +88,3 @@ func getImgTag(imgStr string) string {
 	}
 	return tag
 }
-
-// func CheckRegAuth(imgs []string) {
-
-// }
