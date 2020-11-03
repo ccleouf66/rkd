@@ -21,21 +21,26 @@ Num. Name - TagName
 ```
 
 ## Download latest package
-To downlaod the package in order install a Rancher on Air Gapped environment (helm chart + images):
+To download the package in order install a Rancher on Air Gapped environment (helm chart + images):
 
 ```bash
-# Downlaod latest chart & images of rancher
-./rkd downlaod
+# download latest chart & images of rancher
+./rkd download
 ```
 
 ```bash
-# Downlaod only busybox and alpine images
-./rkd downlaod --image busybox --image alpine
+# download only busybox and alpine images
+./rkd download --image busybox --image alpine
 ```
 
 ```bash
-# Downlaod rancher v2.5.0 and alpine image
+# download rancher v2.5.0 and alpine image
 ./rkd d --rancher v2.4.8 --image alpine
+```
+
+```bash
+# download only busybox and alpine images in the specified directory
+./rkd download --image busybox --image alpine --dest myDirectory
 ```
 
 ## Auth
