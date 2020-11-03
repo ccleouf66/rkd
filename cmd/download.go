@@ -30,18 +30,22 @@ func DownloadCommand() cli.Command {
 		},
 		cli.StringSliceFlag{
 			Name:  "image",
-			Usage: "Download an imgae list.\n rkd download --image busybox --image alpine",
+			Usage: "Download an image list.\n rkd download --image busybox --image alpine",
 		},
 		cli.StringFlag{
 			Name:  "rancher",
 			Usage: "Download Rancher images, rke and helm chart.\n rkd download --rancher v2.5.0",
+		},
+		cli.StringFlag{
+			Name:  "dest",
+			Usage: "Set the name of the destination archive , optional a generic name will be set\n rkd download --rancher v2.5.0 --dest myArchive",
 		},
 	}
 
 	return cli.Command{
 		Name:    "download",
 		Aliases: []string{"d"},
-		Usage:   "Downlaod helm chart list, container images and Rancher release",
+		Usage:   "Download helm chart list, container images and Rancher release",
 		Action:  DownloadDataPack,
 		Flags:   DownloadFlags,
 	}
@@ -51,6 +55,9 @@ func DownloadCommand() cli.Command {
 func DownloadDataPack(c *cli.Context) {
 
 	dest := helpers.GenFileName("datapack")
+	if c.String("dest") != "" {
+		dest = c.String("dest")
+	}
 	helpers.CreateDestDir(dest)
 
 	if len(c.StringSlice("image")) > 0 {
