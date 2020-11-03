@@ -38,7 +38,11 @@ func DownloadCommand() cli.Command {
 		},
 		cli.StringFlag{
 			Name:  "dest",
-			Usage: "Set the name of the destination archive , optional a generic name will be set\n rkd download --rancher v2.5.0 --dest myArchive",
+			Usage: "Set the name of the destination folder containing all downloaded componets (images, rancher images, rancher chart, ...), optional, a generic name will be set: datapack-YYY_MM_JJThh_mm_ss\n rkd download --rancher v2.5.0 --dest destFolder",
+		},
+		cli.StringFlag{
+			Name:  "imgarchname",
+			Usage: "Set the name of the generated archive containing additionals images provided by --image flag, optional, default archive name is images.tar\n rkd download --rancher v2.5.0 --image busybox --imgarchname busybox.tar",
 		},
 	}
 
@@ -51,17 +55,26 @@ func DownloadCommand() cli.Command {
 	}
 }
 
-// DownloadRancherRelease downlaod Rancher chart and images
+// DownloadDataPack downlaod Rancher chart and images
 func DownloadDataPack(c *cli.Context) {
 
-	dest := helpers.GenFileName("datapack")
+	var dest string
+
 	if c.String("dest") != "" {
 		dest = c.String("dest")
+	} else {
+		dest = helpers.GenFileName("datapack")
 	}
 	helpers.CreateDestDir(dest)
 
 	if len(c.StringSlice("image")) > 0 {
-		destImg := fmt.Sprintf("%s/images.tar", dest)
+		var destImg string
+
+		if c.String("imgarchname") != "" {
+			destImg = fmt.Sprintf("%s/%s", dest, c.String("imgarchname"))
+		} else {
+			destImg = fmt.Sprintf("%s/images.tar", dest)
+		}
 		containers.DownloadImage(c.StringSlice("image"), destImg)
 	}
 
