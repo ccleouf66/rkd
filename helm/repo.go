@@ -18,11 +18,20 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
 	"helm.sh/helm/v3/pkg/repo"
 )
+
+type imageValue struct {
+	Registry   string
+	Name       string
+	Repository string
+	Tag        string
+}
 
 // RepoAdd adds repo with given name and url
 func RepoAdd(name, url string) {
@@ -158,4 +167,66 @@ func DownloadChart(repo string, chart string, version string, dest string) {
 func debug(format string, v ...interface{}) {
 	format = fmt.Sprintf("[debug] %s\n", format)
 	log.Output(2, fmt.Sprintf(format, v...))
+}
+
+// GetChartImages take a chart in tgz format and return an image list
+func GetChartImages(chartPath string) ([]string, error) {
+
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		fmt.Printf("Error when loading chart.\n")
+		return nil, err
+	}
+
+	cvals, err := chartutil.CoalesceValues(chart, nil)
+	if err != nil {
+		fmt.Printf("ERR CoalesceValues.\n")
+		return nil, err
+	}
+
+	imageList, err := GetChartImagesFromValues(cvals)
+	if err != nil {
+		return nil, err
+	}
+	return imageList, nil
+}
+
+// GetChartImagesFromValues take a map of string corresponding to a values.yaml an return an image list
+func GetChartImagesFromValues(values map[string]interface{}) ([]string, error) {
+	var imgList []string
+	for k, v := range values {
+		if k == "image" {
+			if _, ok := v.(map[string]interface{}); ok {
+				yml, err := yaml.Marshal(v)
+				if err != nil {
+					return nil, err
+				}
+
+				var img imageValue
+				err = yaml.Unmarshal(yml, &img)
+				if err != nil {
+					return nil, err
+				}
+
+				imgStr := fmt.Sprintf("%s:%s\n", img.Repository, img.Tag)
+				if img.Repository == "" {
+					imgStr = fmt.Sprintf("%s:%s\n", img.Name, img.Tag)
+				}
+
+				if img.Registry != "" {
+					imgStr = fmt.Sprintf("%s/%s", img.Registry, imgStr)
+				}
+				imgList = append(imgList, imgStr)
+			}
+		} else {
+			if _, ok := v.(map[string]interface{}); ok {
+				il, err := GetChartImagesFromValues(v.(map[string]interface{}))
+				if err != nil {
+					return nil, err
+				}
+				imgList = append(imgList, il...)
+			}
+		}
+	}
+	return imgList, nil
 }
