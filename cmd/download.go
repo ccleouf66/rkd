@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"rkd/containers"
 	"rkd/git"
@@ -24,9 +26,9 @@ var (
 // DownloadCommand return downlaod cli command
 func DownloadCommand() cli.Command {
 	DownloadFlags := []cli.Flag{
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "helm",
-			Usage: "Download a helm chart list.\n rkd download --helm",
+			Usage: "Download a helm chart list.\nrkd download --helm https://REPO_URL/REPO_NAME/CHART_NAME \nrkd download --helm https://charts.bitnami.com/bitnami/postgresql-ha",
 		},
 		cli.StringSliceFlag{
 			Name:  "image",
@@ -67,6 +69,7 @@ func DownloadDataPack(c *cli.Context) {
 	}
 	helpers.CreateDestDir(dest)
 
+	// Images
 	if len(c.StringSlice("image")) > 0 {
 		var destImg string
 
@@ -78,19 +81,46 @@ func DownloadDataPack(c *cli.Context) {
 		containers.DownloadImage(c.StringSlice("image"), destImg)
 	}
 
+	// Helm
+	if len(c.StringSlice("helm")) > 0 {
+		for _, el := range c.StringSlice("helm") {
+			s := strings.Split(el, "/")
+			chartName := s[len(s)-1]
+			repoName := s[len(s)-2]
+			repoURL := strings.Join(s[:len(s)-1], "/")
+			chartDest := fmt.Sprintf("%s/%s", dest, chartName)
+
+			fmt.Printf("Getting %s chart\n", chartName)
+
+			helm.RepoAdd(repoName, repoURL)
+			helm.RepoUpdate()
+			chartPath := helm.DownloadChart(repoName, chartName, "", chartDest)
+
+			// Get chart image list
+			imgList, err := helm.GetChartImages(chartPath)
+			if err != nil {
+				log.Printf("Err getting image list of chart %s.\n%s\n", chartName, err)
+				continue
+			}
+
+			// Downlaod container images
+			destImg := fmt.Sprintf("%s/%s-images.tar", chartDest, chartName)
+			err = containers.DownloadImage(imgList, destImg)
+			if err != nil {
+				log.Printf("%s\n", err)
+			}
+		}
+	}
+
+	// Rancher
 	if c.String("rancher") != "" {
 		fmt.Printf("Getting Rancher %s\n", c.String("rancher"))
 		GetRancherHelmChart(c.String("rancher"), dest)
 		GetRancherImages(c.String("rancher"), dest)
 	}
 
-	// if c.String("helm") != "" {
-	// 	fmt.Printf("Getting Rancher chart %s\n", c.String("helm"))
-	// 	GetRancherHelmChart(c.String("helm"))
-	// }
-
 	// If no flag provided, download latest chart and images
-	if c.String("rancher") == "" && c.String("image") == "" {
+	if c.String("rancher") == "" && len(c.StringSlice("image")) == 0 && len(c.StringSlice("helm")) == 0 {
 		GetRancherHelmChart("latest", dest)
 		GetRancherImages("latest", dest)
 	}

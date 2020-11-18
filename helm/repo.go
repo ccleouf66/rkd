@@ -130,7 +130,7 @@ func RepoUpdate() {
 }
 
 // DownloadChart download a chart from public repo to local folder
-func DownloadChart(repo string, chart string, version string, dest string) {
+func DownloadChart(repo string, chart string, version string, dest string) (chartPath string) {
 
 	settings := cli.New()
 
@@ -162,6 +162,8 @@ func DownloadChart(repo string, chart string, version string, dest string) {
 	}
 
 	fmt.Printf("Chart downloaded to %s\n", path)
+
+	return path
 }
 
 func debug(format string, v ...interface{}) {
@@ -216,6 +218,8 @@ func GetChartImagesFromValues(values map[string]interface{}) ([]string, error) {
 				if img.Registry != "" {
 					imgStr = fmt.Sprintf("%s/%s", img.Registry, imgStr)
 				}
+				// remove \n to prevent of reference format error
+				imgStr = strings.TrimSuffix(imgStr, "\n")
 				imgList = append(imgList, imgStr)
 			}
 		} else {
