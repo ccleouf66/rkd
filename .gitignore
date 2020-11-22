@@ -1,4 +1,5 @@
 rkd
 rkd_linux-amd64
+rkd_darwin-amd64
 tmp/
 rancher-images.txt
