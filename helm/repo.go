@@ -41,7 +41,7 @@ func RepoAdd(name, url string, creds ...string) error {
 	//Ensure the file directory exists as it is required for file locking
 	err := os.MkdirAll(filepath.Dir(repoFile), os.ModePerm)
 	if err != nil && !os.IsExist(err) {
-		log.Fatal(err)
+		return err
 	}
 
 	// Acquire a file lock for process synchronization
@@ -76,19 +76,29 @@ func RepoAdd(name, url string, creds ...string) error {
 		URL:  url,
 	}
 
+	// Add credentials to repo if privided
+	if creds != nil {
+		c.Username = creds[0]
+		c.Password = creds[1]
+	}
+
+	// Check repo data
 	r, err := repo.NewChartRepository(&c, getter.All(settings))
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Fail to check repo data format")
+		return err
 	}
-
 	if _, err := r.DownloadIndexFile(); err != nil {
-		log.Fatal(err)
+		log.Println("Fail to check repo, can't download index file")
+		return err
 	}
 
+	// Add new repo to repoFile
 	f.Update(&c)
 
 	if err := f.WriteFile(repoFile, 0644); err != nil {
-		log.Fatal(err)
+		log.Printf("Fail to update repoFile %s", repoFile)
+		return err
 	}
 
 	return nil

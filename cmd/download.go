@@ -46,6 +46,14 @@ func DownloadCommand() cli.Command {
 			Name:  "imgarchname",
 			Usage: "Set the name of the generated archive containing additionals images provided by --image flag, optional, default archive name is images.tar\n rkd download --rancher v2.5.0 --image busybox --imgarchname busybox.tar",
 		},
+		cli.StringFlag{
+			Name:  "helmuser",
+			Usage: "Set the username for private helm repo with --helm flag, optional\nrkd download --helm https://charts.bitnami.com/bitnami/postgresql-ha --helmuser user --helmpwd pwd",
+		},
+		cli.StringFlag{
+			Name:  "helmpwd",
+			Usage: "Set the password for private helm repo with --helm flag, optional\nrkd download --helm https://charts.bitnami.com/bitnami/postgresql-ha --helmuser user --helmpwd pwd",
+		},
 	}
 
 	return cli.Command{
@@ -92,7 +100,10 @@ func DownloadDataPack(c *cli.Context) {
 
 			fmt.Printf("Getting %s chart\n", chartName)
 
-			helm.RepoAdd(repoName, repoURL)
+			err := helm.RepoAdd(repoName, repoURL)
+			if err != nil {
+				log.Println(err)
+			}
 			helm.RepoUpdate()
 			chartPath := helm.DownloadChart(repoName, chartName, "", chartDest)
 
@@ -184,7 +195,10 @@ func GetRancherHelmChart(version string, dest string) {
 		}
 		version = release.GetTagName()
 	}
-	helm.RepoAdd(rancherRepoName, rancherRepoURL)
+	err := helm.RepoAdd(rancherRepoName, rancherRepoURL)
+	if err != nil {
+		log.Println(err)
+	}
 	helm.RepoUpdate()
 	helm.DownloadChart(rancherRepoName, rancherChartName, version, dest)
 }
