@@ -66,7 +66,7 @@ func DownloadCommand() cli.Command {
 }
 
 // DownloadDataPack downlaod Rancher chart and images
-func DownloadDataPack(c *cli.Context) {
+func DownloadDataPack(c *cli.Context) error {
 
 	var dest string
 
@@ -86,7 +86,10 @@ func DownloadDataPack(c *cli.Context) {
 		} else {
 			destImg = fmt.Sprintf("%s/images.tar", dest)
 		}
-		containers.DownloadImage(c.StringSlice("image"), destImg)
+		err := containers.DownloadImage(c.StringSlice("image"), destImg)
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
 	}
 
 	// Helm
@@ -105,20 +108,23 @@ func DownloadDataPack(c *cli.Context) {
 				log.Println(err)
 			}
 			helm.RepoUpdate()
-			chartPath := helm.DownloadChart(repoName, chartName, "", chartDest)
+			chartPath, err := helm.DownloadChart(repoName, chartName, "", chartDest)
+			if err != nil {
+				return cli.NewExitError(err, 1)
+			}
 
 			// Get chart image list
 			imgList, err := helm.GetChartImages(chartPath)
 			if err != nil {
-				log.Printf("Err getting image list of chart %s.\n%s\n", chartName, err)
-				continue
+				log.Printf("Err getting image list of chart %s.", chartName)
+				return cli.NewExitError(err, 1)
 			}
 
 			// Downlaod container images
 			destImg := fmt.Sprintf("%s/%s-images.tar", chartDest, chartName)
 			err = containers.DownloadImage(imgList, destImg)
 			if err != nil {
-				log.Printf("%s\n", err)
+				return cli.NewExitError(err, 1)
 			}
 		}
 	}
@@ -126,51 +132,67 @@ func DownloadDataPack(c *cli.Context) {
 	// Rancher
 	if c.String("rancher") != "" {
 		fmt.Printf("Getting Rancher %s\n", c.String("rancher"))
-		GetRancherHelmChart(c.String("rancher"), dest)
-		GetRancherImages(c.String("rancher"), dest)
+		// Chart
+		err := GetRancherHelmChart(c.String("rancher"), dest)
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
+		// Container images
+		err = GetRancherImages(c.String("rancher"), dest)
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
 	}
 
 	// If no flag provided, download latest chart and images
 	if c.String("rancher") == "" && len(c.StringSlice("image")) == 0 && len(c.StringSlice("helm")) == 0 {
-		GetRancherHelmChart("latest", dest)
-		GetRancherImages("latest", dest)
+		fmt.Printf("Getting Rancher latest\n")
+		// Chart
+		err := GetRancherHelmChart("latest", dest)
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
+		// Container images
+		err = GetRancherImages("latest", dest)
+		if err != nil {
+			return cli.NewExitError(err, 1)
+		}
 	}
+
+	return nil
 }
 
 // GetRancherImages downalod rancher images
-func GetRancherImages(version string, dest string) {
+func GetRancherImages(version string, dest string) (err error) {
 	client := github.NewClient(nil)
 
 	var release *github.RepositoryRelease
-	var err error
 
 	if version == "latest" {
 		// Get latest release
 		release, _, err = client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
 		if err != nil {
-			fmt.Printf("%s\n", err)
+			return err
 		}
 		version = release.GetTagName()
 	} else {
 		// Get release by tag
 		release, _, err = client.Repositories.GetReleaseByTag(context.Background(), "rancher", "rancher", version)
 		if err != nil {
-			fmt.Printf("%s\n", err)
+			return err
 		}
 	}
 
 	// Download rancher-image.txt of from latest stable
 	pathImageList, err := git.GetRancherImageList(release, dest)
 	if err != nil {
-		fmt.Printf("%s\n", err)
-		return
+		return err
 	}
 
 	// Create imageList
 	imgListFile, err := os.Open(pathImageList)
 	if err != nil {
-		fmt.Printf("%s", err)
-		return
+		return err
 	}
 	defer imgListFile.Close()
 
@@ -179,14 +201,26 @@ func GetRancherImages(version string, dest string) {
 	for scanner.Scan() {
 		imgList = append(imgList, scanner.Text())
 	}
+	if !scanner.Scan() {
+		if scanner.Err() != nil {
+			return scanner.Err()
+		}
+	}
 
 	// Downlaod container images
 	destImg := fmt.Sprintf("%s/rancher-images-%s.tar", dest, release.GetTagName())
-	containers.DownloadImage(imgList, destImg)
+	err = containers.DownloadImage(imgList, destImg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // GetRancherHelmChart downalod rancher chart
-func GetRancherHelmChart(version string, dest string) {
+func GetRancherHelmChart(version string, dest string) (err error) {
+	fmt.Printf("Downloading rancher chart ... \n")
+
 	if version == "latest" {
 		client := github.NewClient(nil)
 		release, _, err := client.Repositories.GetLatestRelease(context.Background(), "rancher", "rancher")
@@ -195,10 +229,19 @@ func GetRancherHelmChart(version string, dest string) {
 		}
 		version = release.GetTagName()
 	}
-	err := helm.RepoAdd(rancherRepoName, rancherRepoURL)
+	err = helm.RepoAdd(rancherRepoName, rancherRepoURL)
 	if err != nil {
-		log.Println(err)
+		return err
 	}
-	helm.RepoUpdate()
-	helm.DownloadChart(rancherRepoName, rancherChartName, version, dest)
+	err = helm.RepoUpdate()
+	if err != nil {
+		fmt.Printf("Error when updating helm repos \n")
+		return err
+	}
+	_, err = helm.DownloadChart(rancherRepoName, rancherChartName, version, dest)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

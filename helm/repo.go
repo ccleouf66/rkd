@@ -105,20 +105,20 @@ func RepoAdd(name, url string, creds ...string) error {
 }
 
 // RepoUpdate updates charts for all helm repos
-func RepoUpdate() {
+func RepoUpdate() (err error) {
 	settings := cli.New()
 
 	repoFile := settings.RepositoryConfig
 
 	f, err := repo.LoadFile(repoFile)
 	if os.IsNotExist(errors.Cause(err)) || len(f.Repositories) == 0 {
-		log.Fatal(errors.New("No repositories found. You must add one before updating"))
+		return errors.New("No helm repositories found. You must add one before updating.")
 	}
 	var repos []*repo.ChartRepository
 	for _, cfg := range f.Repositories {
 		r, err := repo.NewChartRepository(cfg, getter.All(settings))
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		repos = append(repos, r)
 	}
@@ -138,4 +138,6 @@ func RepoUpdate() {
 	}
 	wg.Wait()
 	fmt.Printf("Chart updated. ⎈ Happy Helming! ⎈\n")
+
+	return nil
 }

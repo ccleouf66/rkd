@@ -22,13 +22,13 @@ func debug(format string, v ...interface{}) {
 }
 
 // DownloadChart download a chart from public repo to local folder
-func DownloadChart(repo string, chart string, version string, dest string) (chartPath string) {
+func DownloadChart(repo string, chart string, version string, dest string) (chartPath string, err error) {
 
 	settings := cli.New()
 
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), os.Getenv("HELM_DRIVER"), debug); err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	client := action.NewInstall(actionConfig)
@@ -50,12 +50,12 @@ func DownloadChart(repo string, chart string, version string, dest string) (char
 
 	path, _, err := chartDownloader.DownloadTo(chartRef, version, dest)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	fmt.Printf("Chart downloaded to %s\n", path)
 
-	return path
+	return path, nil
 }
 
 // GetChartImages take a chart in tgz format and return an image list
