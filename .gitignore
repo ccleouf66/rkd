@@ -4,4 +4,3 @@ rkd_darwin-amd64
 tmp/
 rancher-images.txt
 datapack*
-.vscode
