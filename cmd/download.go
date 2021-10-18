@@ -54,6 +54,10 @@ func DownloadCommand() cli.Command {
 			Name:  "helmpwd",
 			Usage: "Set the password for private helm repo with --helm flag, optional\nrkd download --helm https://charts.bitnami.com/bitnami/postgresql-ha --helmuser user --helmpwd pwd",
 		},
+		cli.BoolFlag{
+			Name:  "signature",
+			Usage: "boolean to enable the download of the Cosign signature, optional, false by default",
+		},
 	}
 
 	return cli.Command{
@@ -86,7 +90,8 @@ func DownloadDataPack(c *cli.Context) error {
 		} else {
 			destImg = fmt.Sprintf("%s/images.tar", dest)
 		}
-		err := containers.DownloadImage(c.StringSlice("image"), destImg)
+		log.Println(destImg)
+		err := containers.DownloadImage(c.StringSlice("image"), dest, c.Bool("signature"))
 		if err != nil {
 			return cli.NewExitError(err, 1)
 		}
@@ -122,7 +127,7 @@ func DownloadDataPack(c *cli.Context) error {
 
 			// Downlaod container images
 			destImg := fmt.Sprintf("%s/%s-images.tar", chartDest, chartName)
-			err = containers.DownloadImage(imgList, destImg)
+			err = containers.DownloadImage(imgList, destImg, c.Bool("fetchSignature"))
 			if err != nil {
 				return cli.NewExitError(err, 1)
 			}
@@ -209,7 +214,7 @@ func GetRancherImages(version string, dest string) (err error) {
 
 	// Downlaod container images
 	destImg := fmt.Sprintf("%s/rancher-images-%s.tar", dest, release.GetTagName())
-	err = containers.DownloadImage(imgList, destImg)
+	err = containers.DownloadImage(imgList, destImg, false)
 	if err != nil {
 		return err
 	}
