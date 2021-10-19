@@ -90,11 +90,13 @@ func DownloadImage(imgList []string, dest string, fetchSignature bool) error {
 			destRefSig, err := alltransports.ParseImageName(fmt.Sprintf("%s/%s/%s", "dir:", path, destDirSig))
 			if err != nil {
 				log.Printf("Error when downloading signature %s", imgRefSig)
+				os.RemoveAll(destDirSig)
 				continue
 			}
 			err = copyImg(context.Background(), srcRefSig, destRefSig)
 			if err != nil {
 				log.Printf("Error when downloading signature %s", imgRefSig)
+				os.RemoveAll(destDirSig)
 				continue
 			}
 		}
