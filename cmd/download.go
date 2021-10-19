@@ -47,6 +47,10 @@ func DownloadCommand() cli.Command {
 			Usage: "Set the name of the generated archive containing additionals images provided by --image flag, optional, default archive name is images.tar\n rkd download --rancher v2.5.0 --image busybox --imgarchname busybox.tar",
 		},
 		cli.StringFlag{
+			Name:  "sigdestdir",
+			Usage: "Set the name of folder that will contain the signature of the additionals images provided by --image flag, this folder will be created in the dest folder, optional, default signature folder name is signatures.\n rkd download --rancher v2.5.0 --image busybox --imgarchname busybox.tar --sigdestdir sig",
+		},
+		cli.StringFlag{
 			Name:  "helmuser",
 			Usage: "Set the username for private helm repo with --helm flag, optional\nrkd download --helm https://charts.bitnami.com/bitnami/postgresql-ha --helmuser user --helmpwd pwd",
 		},
@@ -79,19 +83,39 @@ func DownloadDataPack(c *cli.Context) error {
 	} else {
 		dest = helpers.GenFileName("datapack")
 	}
-	helpers.CreateDestDir(dest)
+	err := helpers.CreateDestDir(dest)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
 
 	// Images
 	if len(c.StringSlice("image")) > 0 {
 		var destImg string
+		var destSig string = ""
 
+		// Define the images archive name
 		if c.String("imgarchname") != "" {
 			destImg = fmt.Sprintf("%s/%s", dest, c.String("imgarchname"))
 		} else {
 			destImg = fmt.Sprintf("%s/images.tar", dest)
 		}
-		log.Println(destImg)
-		err := containers.DownloadImage(c.StringSlice("image"), dest, c.Bool("signature"))
+
+		// Define the image signature folder name
+		if c.Bool("signature") {
+			if c.String("sigdestdir") != "" {
+				destSig = fmt.Sprintf("%s/%s", dest, c.String("sigdestdir"))
+			} else {
+				destSig = fmt.Sprintf("%s/signatures", dest)
+			}
+
+			// Create the image signature folder
+			helpers.CreateDestDir(destSig)
+			if err != nil {
+				return cli.NewExitError(err, 1)
+			}
+		}
+
+		err := containers.DownloadImage(c.StringSlice("image"), destImg, c.Bool("signature"), destSig)
 		if err != nil {
 			return cli.NewExitError(err, 1)
 		}
@@ -127,7 +151,8 @@ func DownloadDataPack(c *cli.Context) error {
 
 			// Download container images
 			destImg := fmt.Sprintf("%s/%s-images.tar", chartDest, chartName)
-			err = containers.DownloadImage(imgList, destImg, c.Bool("signature"))
+			destSig := fmt.Sprintf("%s/%s-image-signatures", chartDest, chartName)
+			err = containers.DownloadImage(imgList, destImg, c.Bool("signature"), destSig)
 			if err != nil {
 				return cli.NewExitError(err, 1)
 			}
@@ -214,7 +239,7 @@ func GetRancherImages(version string, dest string) (err error) {
 
 	// Downlaod container images
 	destImg := fmt.Sprintf("%s/rancher-images-%s.tar", dest, release.GetTagName())
-	err = containers.DownloadImage(imgList, destImg, false)
+	err = containers.DownloadImage(imgList, destImg, false, "")
 	if err != nil {
 		return err
 	}

@@ -20,7 +20,7 @@ RUN    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezon
        go get && \
        GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/src/rkd/rkd-linux-amd64
 
-FROM debian:stretch-slim
+FROM ubuntu:latest
 WORKDIR /go/bin/
 COPY --from='builder' /go/src/rkd/rkd-linux-amd64 /go/bin/rkd-linux-amd64
 COPY --from='builder' /go/src/rkd/policy.json /go/bin/
