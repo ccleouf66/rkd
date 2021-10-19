@@ -149,10 +149,9 @@ func DownloadDataPack(c *cli.Context) error {
 				return cli.NewExitError(err, 1)
 			}
 
-			// Downlaod container images
+			// Download container images
 			destImg := fmt.Sprintf("%s/%s-images.tar", chartDest, chartName)
 			destSig := fmt.Sprintf("%s/%s-image-signatures", chartDest, chartName)
-
 			err = containers.DownloadImage(imgList, destImg, c.Bool("signature"), destSig)
 			if err != nil {
 				return cli.NewExitError(err, 1)
