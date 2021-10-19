@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/opencontainers/go-digest"
 )
 
 // DownloadImage download docker images from src and create docker-archive
@@ -58,7 +59,7 @@ func DownloadImage(imgList []string, destImg string, fetchSignature bool, destSi
 
 		// Download and create tar
 		fmt.Printf("Copy %s to %s\n", img, destImg)
-		rawManifest, err := copyImg(context.Background(), srcRef, destRef)
+		_, err = copyImg(context.Background(), srcRef, destRef)
 		if err != nil {
 			log.Printf("Error when downloading image %s", img)
 			return err
@@ -67,7 +68,7 @@ func DownloadImage(imgList []string, destImg string, fetchSignature bool, destSi
 		// Fetching Cosing signature
 		// Do not fail at signature error (the signature may not exist yet)
 		if fetchSignature {
-			imgDigest, err := manifest.Digest(rawManifest)
+			imgDigest, err := fetchDigest(srcRef)
 			if err != nil {
 				log.Printf("Error when fecthing digest image %s \n %s", srcRef.DockerReference().Name(), err)
 				continue
@@ -126,6 +127,27 @@ func copyImg(ctx context.Context, srcImgRef types.ImageReference, destImgRef typ
 		ReportWriter: os.Stdout,
 		SourceCtx:    sysCtx,
 	})
+}
+
+func fetchDigest(srcImgRef types.ImageReference) (*digest.Digest, error) {
+	// Create systemContext to select os and arch
+	sysCtx := &types.SystemContext{
+		ArchitectureChoice: "amd64",
+		OSChoice:           "linux",
+	}
+	imgSrc, err := srcImgRef.NewImageSource(context.Background(), sysCtx)
+	if err != nil {
+		return nil, err
+	}
+	rawManifest, _, err := imgSrc.GetManifest(context.Background(), nil)
+	if err != nil {
+		return nil, err
+	}
+	digest, err := manifest.Digest(rawManifest)
+	if err != nil {
+		return nil, err
+	}
+	return &digest, err
 }
 
 func getImgTag(imgStr string) string {
